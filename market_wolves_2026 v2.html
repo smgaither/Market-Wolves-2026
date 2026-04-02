@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Market Wolves 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg:#0d0f0e; --surf:#151815; --surf2:#1c1f1b;
+  --bdr:rgba(255,255,255,0.07); --bdr2:rgba(255,255,255,0.13);
+  --txt:#e8ead6; --mut:#7a7d6e;
+  --grn:#7ecb8f; --grn-d:rgba(126,203,143,0.13);
+  --red:#e07b6a; --red-d:rgba(224,123,106,0.13);
+  --gld:#d4a843;
+  --acc:#b5d18b;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg);color:var(--txt);font-family:'DM Mono',monospace;font-size:14px;}
+body{min-height:100vh;}
+.shell{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+.hdr h1{font-family:'Fraunces',serif;font-size:2.2rem;font-weight:700;letter-spacing:-0.02em;color:var(--acc);line-height:1.1;}
+.hdr h1 em{font-style:italic;color:var(--gld);}
+.hdr p{color:var(--mut);font-size:11px;margin-top:5px;letter-spacing:0.06em;text-transform:uppercase;}
+.rbtn{background:transparent;border:1px solid var(--bdr2);color:var(--txt);padding:8px 16px;border-radius:4px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.05em;transition:all .2s;display:flex;align-items:center;gap:8px;}
+.rbtn:hover{border-color:var(--acc);color:var(--acc);}
+.rbtn:disabled{opacity:.4;cursor:not-allowed;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{display:inline-block;animation:spin 1s linear infinite;}
+.sbar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;font-size:11px;color:var(--mut);}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--mut);flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sdot.live{background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pulse 2s ease-in-out infinite;}
+.sdot.err{background:var(--red);}
+.ebox{background:var(--red-d);border:1px solid rgba(224,123,106,.3);border-radius:6px;padding:12px 16px;font-size:12px;color:var(--red);margin-bottom:1rem;line-height:1.6;}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:1.5rem;}
+.metric{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:14px 16px;}
+.mlbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;}
+.mval{font-family:'Fraunces',serif;font-size:1.4rem;font-weight:500;}
+.mval.pos{color:var(--grn);}
+.mval.neg{color:var(--red);}
+.mval.gld{color:var(--gld);font-size:1rem;}
+.mval.neu{color:var(--txt);}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:1.5rem;}
+.tab{background:none;border:none;color:var(--mut);padding:8px 18px;cursor:pointer;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab:hover{color:var(--txt);}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc);}
+.pcard{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;cursor:pointer;}
+.pcard:hover{border-color:var(--bdr2);}
+.pcard.rank1{border-color:rgba(212,168,67,.4);}
+.pcard.open{border-color:var(--bdr2);}
+.ctop{display:flex;align-items:center;gap:14px;padding:14px 18px;}
+.rnum{font-family:'Fraunces',serif;font-size:1.1rem;font-weight:300;color:var(--mut);min-width:26px;}
+.rnum.g{color:var(--gld);}
+.avt{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;font-family:'Fraunces',serif;}
+.pinfo{flex:1;min-width:0;}
+.pname{font-size:14px;font-weight:500;color:var(--txt);}
+.petfs{font-size:10px;color:var(--mut);margin-top:2px;letter-spacing:.03em;}
+.pret{font-family:'Fraunces',serif;font-size:1.25rem;font-weight:500;min-width:85px;text-align:right;}
+.pret.pos{color:var(--grn);}
+.pret.neg{color:var(--red);}
+.pret.neu{color:var(--mut);}
+.chev{color:var(--mut);font-size:10px;margin-left:8px;transition:transform .2s;}
+.pcard.open .chev{transform:rotate(180deg);}
+.bzone{padding:0 18px 10px;display:flex;align-items:center;}
+.btrack{flex:1;height:4px;background:var(--surf2);border-radius:2px;position:relative;}
+.bfill{height:100%;border-radius:2px;position:absolute;top:0;}
+.bctr{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--bdr2);}
+.epanel{border-top:1px solid var(--bdr);display:none;}
+.pcard.open .epanel{display:block;}
+.etbl{width:100%;border-collapse:collapse;}
+.etbl th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:10px 18px 8px;text-align:left;border-bottom:1px solid var(--bdr);}
+.etbl th:nth-child(3),.etbl td:nth-child(3){text-align:right;}
+.etbl th:last-child,.etbl td:last-child{text-align:right;}
+.etbl td{padding:10px 18px;font-size:12px;border-bottom:1px solid var(--bdr);color:var(--txt);}
+.etbl tr:last-child td{border-bottom:none;}
+.tpill{display:inline-block;background:var(--surf2);border:1px solid var(--bdr);border-radius:3px;padding:2px 7px;font-size:10px;letter-spacing:.05em;color:var(--mut);}
+.eret{font-family:'Fraunces',serif;font-size:1rem;}
+.eret.pos{color:var(--grn);}
+.eret.neg{color:var(--red);}
+.eret.neu{color:var(--mut);}
+.csect{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:20px;margin-bottom:14px;}
+.ctitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:16px;}
+.cwrap{position:relative;width:100%;}
+.legrow{display:flex;flex-wrap:wrap;gap:12px;margin-top:12px;}
+.legitem{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);}
+.legdot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.hplayer{margin-bottom:1.5rem;}
+.hname{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.hname span{font-size:14px;font-weight:500;}
+.rbadge{font-family:'Fraunces',serif;font-size:12px;padding:2px 8px;border-radius:3px;}
+.rbadge.pos{background:var(--grn-d);color:var(--grn);}
+.rbadge.neg{background:var(--red-d);color:var(--red);}
+.rbadge.neu{background:var(--surf2);color:var(--mut);}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;}
+.ecard{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;}
+.ectk{font-size:10px;letter-spacing:.08em;color:var(--mut);margin-bottom:4px;}
+.ecnm{font-size:12px;color:var(--txt);margin-bottom:8px;line-height:1.4;}
+.ecbot{display:flex;justify-content:space-between;align-items:baseline;}
+.ecwt{font-size:10px;color:var(--mut);}
+.ecret{font-family:'Fraunces',serif;font-size:1.1rem;}
+.ecret.pos{color:var(--grn);}
+.ecret.neg{color:var(--red);}
+.ecret.neu{color:var(--mut);}
+@keyframes shimmer{0%{opacity:.3}50%{opacity:.7}100%{opacity:.3}}
+.skel{background:var(--surf2);border-radius:3px;animation:shimmer 1.5s ease-in-out infinite;}
+.note{font-size:10px;color:var(--mut);margin-top:1.5rem;line-height:1.8;border-top:1px solid var(--bdr);padding-top:1rem;}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<div class="hdr">
+  <div>
+    <h1>Market <em>Wolves</em></h1>
+    <p>Fantasy Finance League &nbsp;·&nbsp; 2026 Season &nbsp;·&nbsp; Started Jan 7, 2026</p>
+  </div>
+  <button class="rbtn" id="rbtn" onclick="loadData()">
+    <span id="ric">&#8635;</span> Refresh prices
+  </button>
+</div>
+
+<div class="sbar">
+  <div class="sdot" id="sdot"></div>
+  <span id="stxt">Loading live data…</span>
+</div>
+
+<div class="ebox" id="ebox" style="display:none;"></div>
+
+<div class="metrics" id="metrics">
+  <div class="metric"><div class="mlbl">Leader</div><div class="skel" style="height:26px;width:75%;border-radius:3px;margin-top:4px;"></div></div>
+  <div class="metric"><div class="mlbl">Best return</div><div class="skel" style="height:26px;width:55%;border-radius:3px;margin-top:4px;"></div></div>
+  <div class="metric"><div class="mlbl">Avg return</div><div class="skel" style="height:26px;width:55%;border-radius:3px;margin-top:4px;"></div></div>
+  <div class="metric"><div class="mlbl">In the green</div><div class="skel" style="height:26px;width:45%;border-radius:3px;margin-top:4px;"></div></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="setTab('lb',this)">Leaderboard</button>
+  <button class="tab" onclick="setTab('ch',this)">Returns chart</button>
+  <button class="tab" onclick="setTab('hd',this)">All holdings</button>
+</div>
+
+<div id="vlb"></div>
+<div id="vch" style="display:none;"></div>
+<div id="vhd" style="display:none;"></div>
+
+<div class="note">
+  Returns are <strong style="color:var(--txt);font-weight:500;">total return including dividends</strong>, calculated from Yahoo Finance dividend-adjusted closing prices from Jan 7, 2026 to the latest trading day. Portfolio return = weighted sum of each ETF's total return. Click any player row to expand holdings detail.
+</div>
+
+</div>
+<script>
+const START_EPOCH = 1736208000;
+
+const PLAYERS = [
+  {name:'Jalfery', etfs:[
+    {t:'IEF',  name:'iShares 7-10 Year Treasury Bond',      w:0.45},
+    {t:'GLD',  name:'SPDR Gold Shares',                     w:0.30},
+    {t:'DBMF', name:'iMGP DBi Managed Futures Strategy',    w:0.25},
+  ]},
+  {name:'Gray Guy', etfs:[
+    {t:'SMH',  name:'VanEck Semiconductor ETF',             w:0.40},
+    {t:'DRIV', name:'Global X Autonomous & Electric Vehicles', w:0.35},
+    {t:'AGG',  name:'iShares Core U.S. Aggregate Bond',     w:0.25},
+  ]},
+  {name:'JPenis', etfs:[
+    {t:'VTEB', name:'Vanguard Tax-Exempt Bond Index',        w:0.40},
+    {t:'SHLD', name:'Global X Defense Tech ETF',             w:0.35},
+    {t:'NLR',  name:'VanEck Uranium and Nuclear ETF',        w:0.25},
+  ]},
+  {name:'Stew', etfs:[
+    {t:'AIQ',  name:'Global X AI & Technology ETF',          w:1/3},
+    {t:'XBI',  name:'SPDR S&P Biotech',                      w:1/3},
+    {t:'XAR',  name:'SPDR S&P Aerospace & Defense',          w:1/3},
+  ]},
+  {name:'Chino Bot 4.0', etfs:[
+    {t:'ARGT', name:'Global X MSCI Argentina ETF',           w:0.10},
+    {t:'ARKK', name:'ARK Innovation ETF',                    w:0.40},
+    {t:'BETE', name:'ProShares Bitcoin & Ether Equal Weight', w:0.50},
+  ]},
+  {name:'GarrBear', etfs:[
+    {t:'TQQQ', name:'ProShares UltraPro QQQ',                w:1.00},
+  ]},
+];
+
+const AVTS=[
+  {bg:'#1a2e1a',fg:'#7ecb8f'},{bg:'#1e2530',fg:'#8fbbca'},
+  {bg:'#2a2010',fg:'#d4a843'},{bg:'#2a1a1a',fg:'#e07b6a'},
+  {bg:'#1e1a2a',fg:'#b5a8e0'},{bg:'#1a2820',fg:'#8fd4b5'},
+];
+const PAL=['#7ecb8f','#8fbbca','#d4a843','#e07b6a','#b5a8e0','#8fd4b5'];
+
+let rets={}, ranked=[], activeTab='lb', barI=null, etfI=null;
+
+function fetchWithTimeout(url, ms){
+  return new Promise((resolve, reject)=>{
+    const timer=setTimeout(()=>reject(new Error('Request timed out')), ms);
+    fetch(url).then(r=>{clearTimeout(timer);resolve(r);}).catch(e=>{clearTimeout(timer);reject(e);});
+  });
+}
+
+async function fetchTicker(ticker){
+  const now=Math.floor(Date.now()/1000);
+  const yhUrl=`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?period1=${START_EPOCH}&period2=${now}&interval=1d&includeAdjustedClose=true`;
+  const proxyUrl=`https://corsproxy.io/?url=${encodeURIComponent(yhUrl)}`;
+  const res=await fetchWithTimeout(proxyUrl, 15000);
+  if(!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data=await res.json();
+  if(!data.chart||!data.chart.result||!data.chart.result[0]) throw new Error('No chart data');
+  const adjclose=data.chart.result[0].indicators.adjclose;
+  if(!adjclose||!adjclose[0]) throw new Error('No adjusted close data');
+  const prices=adjclose[0].adjclose.filter(v=>v!=null);
+  if(prices.length<2) throw new Error('Insufficient price history');
+  const first=prices[0], last=prices[prices.length-1];
+  return (last-first)/first;
+}
+
+async function loadData(){
+  setStatus('','Fetching live prices…');
+  setBusy(true);
+  hideErr();
+  const allT=[...new Set(PLAYERS.flatMap(p=>p.etfs.map(e=>e.t)))];
+  const errs=[];
+  await Promise.all(allT.map(async t=>{
+    try{ rets[t]=await fetchTicker(t); }
+    catch(e){ errs.push(`${t} (${e.message})`); rets[t]=null; }
+  }));
+  ranked=PLAYERS.map(p=>{
+    let pr=0,ok=true;
+    p.etfs.forEach(e=>{ if(rets[e.t]==null){ok=false;}else{pr+=rets[e.t]*e.w;} });
+    return {...p,pr:ok?pr:null};
+  }).sort((a,b)=>{
+    if(a.pr==null&&b.pr==null)return 0;
+    if(a.pr==null)return 1; if(b.pr==null)return -1;
+    return b.pr-a.pr;
+  }).map((p,i)=>({...p,rank:i+1}));
+  if(errs.length){
+    showErr(`Could not load: ${errs.join(', ')}. This is usually a temporary proxy rate-limit — wait 30 seconds and try refreshing.`);
+    setStatus('err',`Loaded with ${errs.length} error(s)`);
+  } else {
+    const t=new Date();
+    setStatus('live',`Live · Updated ${t.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`);
+  }
+  setBusy(false);
+  renderAll();
+}
+
+function fmt(v){return v==null?'—':(v>=0?'+':'')+(v*100).toFixed(2)+'%';}
+function rc(v){return v==null?'neu':v>=0?'pos':'neg';}
+function ini(n){return n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();}
+
+function renderAll(){
+  renderMetrics(); renderLB();
+  if(activeTab==='ch')renderCharts();
+  if(activeTab==='hd')renderHoldings();
+}
+
+function renderMetrics(){
+  const v=ranked.filter(p=>p.pr!=null);
+  const best=v[0], avg=v.length?v.reduce((s,p)=>s+p.pr,0)/v.length:null;
+  const grn=v.filter(p=>p.pr>=0).length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="mlbl">Leader</div><div class="mval gld">${best?best.name:'—'}</div></div>
+    <div class="metric"><div class="mlbl">Best return</div><div class="mval ${best?rc(best.pr):''}">${best?fmt(best.pr):'—'}</div></div>
+    <div class="metric"><div class="mlbl">Avg return</div><div class="mval ${rc(avg)}">${fmt(avg)}</div></div>
+    <div class="metric"><div class="mlbl">In the green</div><div class="mval neu">${grn} / ${PLAYERS.length}</div></div>`;
+}
+
+function renderLB(){
+  const maxA=Math.max(...ranked.filter(p=>p.pr!=null).map(p=>Math.abs(p.pr)),0.01);
+  const c=document.getElementById('vlb'); c.innerHTML='';
+  ranked.forEach((p,i)=>{
+    const av=AVTS[i%AVTS.length];
+    const bp=p.pr!=null?(Math.abs(p.pr)/maxA*50):0;
+    const bc=p.pr!=null?(p.pr>=0?'var(--grn)':'var(--red)'):'var(--mut)';
+    const bl=p.pr!=null&&p.pr>=0?'50%':`${50-bp}%`;
+    const rows=p.etfs.map(e=>{const r=rets[e.t];return`<tr>
+      <td><span class="tpill">${e.t}</span></td>
+      <td>${e.name}</td>
+      <td style="text-align:right;color:var(--mut);">${(e.w*100).toFixed(0)}%</td>
+      <td style="text-align:right;" class="eret ${rc(r)}">${fmt(r)}</td>
+    </tr>`;}).join('');
+    const d=document.createElement('div');
+    d.className=`pcard${p.rank===1?' rank1':''}`;
+    d.innerHTML=`
+      <div class="ctop">
+        <div class="rnum${p.rank===1?' g':''}">${String(p.rank).padStart(2,'0')}</div>
+        <div class="avt" style="background:${av.bg};color:${av.fg};">${ini(p.name)}</div>
+        <div class="pinfo"><div class="pname">${p.name}</div><div class="petfs">${p.etfs.map(e=>e.t).join(' · ')}</div></div>
+        <div class="pret ${rc(p.pr)}">${fmt(p.pr)}</div>
+        <div class="chev">&#9660;</div>
+      </div>
+      <div class="bzone"><div class="btrack">
+        <div class="bctr"></div>
+        <div class="bfill" style="background:${bc};width:${bp}%;left:${bl};"></div>
+      </div></div>
+      <div class="epanel">
+        <table class="etbl">
+          <thead><tr><th>Ticker</th><th>Name</th><th>Weight</th><th>Total return</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+    d.onclick=()=>d.classList.toggle('open');
+    c.appendChild(d);
+  });
+}
+
+function renderCharts(){
+  const c=document.getElementById('vch');
+  c.innerHTML=`
+    <div class="csect"><div class="ctitle">Portfolio total returns (dividends included)</div>
+      <div class="cwrap" style="height:240px;"><canvas id="bc"></canvas></div></div>
+    <div class="csect"><div class="ctitle">Individual ETF returns</div>
+      <div class="cwrap" style="height:260px;"><canvas id="ec"></canvas></div>
+      <div class="legrow" id="leg"></div></div>`;
+  if(barI){barI.destroy();barI=null;}
+  if(etfI){etfI.destroy();etfI=null;}
+  const names=ranked.map(p=>p.name);
+  const rvals=ranked.map(p=>p.pr!=null?+(p.pr*100).toFixed(2):null);
+  barI=new Chart(document.getElementById('bc'),{type:'bar',
+    data:{labels:names,datasets:[{data:rvals,backgroundColor:rvals.map(r=>r!=null?(r>=0?'#7ecb8f':'#e07b6a'):'#444'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.raw!=null?(ctx.raw>=0?'+':'')+ctx.raw+'%':'N/A'}}},
+      scales:{x:{ticks:{color:'#7a7d6e',font:{size:11,family:'DM Mono'}},grid:{color:'rgba(255,255,255,0.04)'}},
+        y:{ticks:{color:'#7a7d6e',font:{size:11,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  const allT=[...new Set(PLAYERS.flatMap(p=>p.etfs.map(e=>e.t)))];
+  etfI=new Chart(document.getElementById('ec'),{type:'bar',
+    data:{labels:allT,datasets:ranked.map((p,pi)=>({
+      label:p.name,
+      data:allT.map(t=>{const e=p.etfs.find(e=>e.t===t);if(!e)return null;const r=rets[t];return r!=null?+(r*100).toFixed(2):null;}),
+      backgroundColor:PAL[pi%PAL.length]+'cc',borderColor:PAL[pi%PAL.length],borderWidth:1,borderRadius:3,skipNull:true,
+    }))},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${ctx.raw!=null?(ctx.raw>=0?'+':'')+ctx.raw+'%':'N/A'}`}}},
+      scales:{x:{ticks:{color:'#7a7d6e',font:{size:10,family:'DM Mono'},autoSkip:false,maxRotation:45},grid:{display:false}},
+        y:{ticks:{color:'#7a7d6e',font:{size:11,family:'DM Mono'},callback:v=>v+'%'},grid:{color:'rgba(255,255,255,0.05)'}}}}});
+  document.getElementById('leg').innerHTML=ranked.map((p,i)=>
+    `<span class="legitem"><span class="legdot" style="background:${PAL[i%PAL.length]};"></span>${p.name}</span>`).join('');
+}
+
+function renderHoldings(){
+  document.getElementById('vhd').innerHTML=ranked.map((p,pi)=>{
+    const av=AVTS[pi%AVTS.length];
+    return`<div class="hplayer">
+      <div class="hname">
+        <div class="avt" style="background:${av.bg};color:${av.fg};width:32px;height:32px;font-size:11px;">${ini(p.name)}</div>
+        <span>${p.name}</span><span class="rbadge ${rc(p.pr)}">${fmt(p.pr)}</span>
+      </div>
+      <div class="hgrid">${p.etfs.map(e=>{const r=rets[e.t];return`<div class="ecard">
+        <div class="ectk">${e.t}</div><div class="ecnm">${e.name}</div>
+        <div class="ecbot"><div class="ecwt">${(e.w*100).toFixed(0)}% weight</div><div class="ecret ${rc(r)}">${fmt(r)}</div></div>
+      </div>`;}).join('')}</div>
+    </div>`;
+  }).join('');
+}
+
+function setTab(tab,btn){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  ['lb','ch','hd'].forEach(v=>document.getElementById('v'+v).style.display=v===tab?'block':'none');
+  if(tab==='ch')renderCharts();
+  if(tab==='hd')renderHoldings();
+}
+function setStatus(s,m){
+  document.getElementById('sdot').className='sdot'+(s==='live'?' live':s==='err'?' err':'');
+  document.getElementById('stxt').textContent=m;
+}
+function setBusy(v){
+  document.getElementById('rbtn').disabled=v;
+  document.getElementById('ric').className=v?'spin':'';
+}
+function showErr(m){const b=document.getElementById('ebox');b.innerHTML=m;b.style.display='block';}
+function hideErr(){document.getElementById('ebox').style.display='none';}
+
+loadData();
+</script>
+</body>
+</html>
