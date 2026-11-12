@@ -17,7 +17,9 @@ async function one(t) {
     const p = adj[i] ?? cls[i];
     if (p != null) map[new Date(ts*1000).toISOString().slice(0,10)] = p;
   });
-  return { map, price: res.meta?.regularMarketPrice ?? null };
+  return { map, price: res.meta?.regularMarketPrice ?? null,
+           time: res.meta?.regularMarketTime ?? null,                    // last regular-session trade (unix s)
+           end: res.meta?.currentTradingPeriod?.regular?.end ?? null };  // today's session close (unix s)
 }
 
 export default {
@@ -29,6 +31,12 @@ export default {
     try {
       const got = await Promise.all(TICKERS.map(one));
       const maps = got.map(g => g.map), prices = {};
+      // Market is open if something traded in the last 15 min and today's session hasn't ended.
+      // Uses Yahoo's own times, so weekends, holidays and early closes come out right.
+      const nowS = Date.now() / 1000;
+      const lastTrade = Math.max(...got.map(g => g.time || 0));
+      const end = got[TICKERS.indexOf("VOO")].end;
+      const market = { open: nowS - lastTrade < 900 && (!end || nowS < end), lastTrade: new Date(lastTrade * 1000).toISOString() };
       TICKERS.forEach((t, k) => { if (got[k].price != null) prices[t] = Math.round(got[k].price * 100) / 100; });
       const dates = [...new Set(maps.flatMap(m => Object.keys(m)))].sort();
       const series = {};
@@ -41,7 +49,7 @@ export default {
           return Math.round((last/base - 1)*1e6)/1e6;
         });
       });
-      const resp = new Response(JSON.stringify({ updated: new Date().toISOString(), start: "2026-01-07", dates, series, prices }),
+      const resp = new Response(JSON.stringify({ updated: new Date().toISOString(), start: "2026-01-07", dates, series, prices, market }),
         { headers: { ...CORS, "Cache-Control": "public, max-age=60" } });
       ctx.waitUntil(cache.put(key, resp.clone()));
       return resp;

@@ -349,11 +349,22 @@ const lcBeta=p=>p.n<MIN_BETA?`<span class="lc" title="Low confidence: only ${p.n
 const lcSharpe=p=>p.n<MIN_SHARPE?`<span class="lc" title="Low confidence: only ${p.n} trading days (needs ${MIN_SHARPE})">†</span>`:'';
 
 /* ---------- render ---------- */
+// Mon–Fri 9:30–16:00 New York time (ignores holidays; only used for the data.json fallback).
+function usMarketHours(d){
+  const p=Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',weekday:'short',hour:'numeric',minute:'numeric',hour12:false}).formatToParts(d).map(x=>[x.type,x.value]));
+  const mins=(+p.hour%24)*60+ +p.minute;
+  return !['Sat','Sun'].includes(p.weekday)&&mins>=570&&mins<960;
+}
 function renderAll(){
   const L=D.n-1,last=D.dates[L];
-  const upd=new Date(D.updated),ageMin=(Date.now()-upd)/60000;
   const dt=new Date(last+'T12:00:00').toLocaleDateString([],{month:'short',day:'numeric'});
-  setStatus(ageMin<30?'live':'',`Prices through ${dt} · updated ${upd.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`);
+  // Live feed says whether the market is open and when the last trade was.
+  // data.json fallback: open if it's US market hours right now; the time shown is when data.json was written.
+  let open,when;
+  if(D.market){open=D.market.open;when=new Date(D.market.lastTrade);}
+  else{when=new Date(D.updated);open=usMarketHours(new Date());}
+  const md=when.toLocaleDateString([],{month:'short',day:'numeric'}),tm=when.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  setStatus(open?'live':'',`Prices through ${dt} · `+(open?`Updated ${md} at ${tm}`:'Market Close'));
   renderMetrics();renderLB();
   if(activeTab==='ch')renderCharts();
   renderHoldings();renderNote();
