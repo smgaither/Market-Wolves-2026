@@ -1,0 +1,5 @@
+# Cloudflare Worker for live prices. Deploy with: npx wrangler deploy
+name = "market-wolves"
+main = "worker.js"
+compatibility_date = "2026-11-01"
+workers_dev = true

@@ -212,7 +212,7 @@ const AVBG=['#1a2e1a','#1e2530','#2a2010','#2a1a1a','#1e1a2a','#2a1a25'];
 PLAYERS.forEach((p,i)=>{p.color=PAL[i];p.bg=AVBG[i];});
 
 // Optional: paste your Cloudflare Worker URL here for near-real-time data (see README). Leave '' to use data.json only.
-const LIVE_URL='';
+const LIVE_URL='https://market-wolves.arket--olves-2026.workers.dev';
 
 const $=id=>document.getElementById(id);
 const fmt=v=>v==null||isNaN(v)?'—':(v>=0?'+':'')+(v*100).toFixed(2)+'%';
