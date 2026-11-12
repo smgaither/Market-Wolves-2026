@@ -549,6 +549,16 @@ $('vch').addEventListener('click',ev=>{
   ds.hidden=hidden.has(name);b.classList.toggle('off',ds.hidden);charts.line.update();
 });
 
+// Phones have no "mouse left the chart" event, so a tapped tooltip would stay forever.
+// Any tap outside a chart closes its tooltip.
+document.addEventListener('pointerdown',ev=>{
+  const tapped=ev.target.closest&&ev.target.closest('canvas');
+  Object.values(charts).forEach(c=>{
+    if(c.canvas===tapped||!c.tooltip||!c.tooltip.getActiveElements().length)return;
+    c.tooltip.setActiveElements([],{x:0,y:0});c.setActiveElements([]);c.update('none');
+  });
+},{passive:true});
+
 /* ---------- ui ---------- */
 document.querySelector('.tabs').addEventListener('click',ev=>{
   const b=ev.target.closest('.tab');if(!b)return;
