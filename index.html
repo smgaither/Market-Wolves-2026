@@ -111,6 +111,12 @@ button{font:inherit;color:inherit;}
 .csect{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:20px;margin-bottom:14px;}
 .ctitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:14px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
 .cbox{position:relative;}
+.ctitle.ctr{align-items:center;}
+.rng{display:flex;border:1px solid var(--bdr2);border-radius:4px;overflow:hidden;}
+.rng button{background:none;border:0;border-left:1px solid var(--bdr);color:var(--mut);padding:6px 11px;font-size:10px;letter-spacing:.06em;cursor:pointer;transition:color .15s,background .15s;}
+.rng button:first-child{border-left:0;}
+.rng button:hover{color:var(--txt);}
+.rng button.on{background:var(--surf2);color:var(--acc);}
 .legrow{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:14px;}
 .legitem{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);background:none;border:0;cursor:pointer;padding:2px 0;}
 .legitem.off{opacity:.35;}
@@ -190,6 +196,7 @@ button{font:inherit;color:inherit;}
   .hold .nm{display:none;}
   .hold .pm{display:block;font-size:11px;color:var(--txt);}
   .csect{padding:14px;}
+  .rng button{padding:8px 12px;font-size:11px;}
   .rtbl th,.rtbl td{padding-left:6px;padding-right:6px;}
   .rtbl{min-width:430px;}
   .rtbl td{font-size:11px;}
@@ -273,6 +280,8 @@ const rc=v=>!ok(v)?'neu':v>=0?'pos':'neg';
 const ini=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
 const isPhone=()=>window.matchMedia('(max-width:560px)').matches;
 
+let range='YTD';  // returns-chart window; kept across refreshes
+const RANGES={'1M':1,'3M':3,'6M':6,'YTD':null};  // months back from the latest date
 let D=null,ranked=[],bench=null,rets={},dayRets={},prices={},nDays=0,activeTab='lb',charts={},hidden=new Set(),openCards=new Set();
 
 /* ---------- data ---------- */
@@ -477,7 +486,8 @@ function renderCharts(){
     <td class="${b?'':rc(p.sharpe)}">${num(p.sharpe)}${lcSharpe(p)}</td>
     <td class="vol">${fmt(p.vol).replace('+','')}</td></tr>`;
   v.innerHTML=`
-    <div class="csect"><div class="ctitle"><span>Cumulative total return</span><span>Jan 7 → ${D.dates[D.n-1]}</span></div>
+    <div class="csect"><div class="ctitle ctr"><span>Return since Jan 7</span>
+      <div class="rng" role="group" aria-label="Chart time range">${Object.keys(RANGES).map(k=>`<button data-r="${k}" class="${k===range?'on':''}" aria-pressed="${k===range}">${k}</button>`).join('')}</div></div>
       <div class="legrow" id="leg"></div>
       <div class="cbox" style="height:${phone?300:380}px;"><canvas id="lc"></canvas></div></div>
     <div class="csect"><div class="ctitle"><span>Risk &amp; return</span><span>${nDays} trading days</span></div>
@@ -501,6 +511,7 @@ function renderCharts(){
       plugins:{legend:{display:false},tooltip:{...tip,itemSort:(a,b)=>b.raw-a.raw,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw>=0?'+':''}${c.raw.toFixed(2)}%`}}},
       scales:{x:{ticks:{maxTicksLimit:phone?5:9,maxRotation:0,font:{size:10}},grid:{display:false}},
               y:{ticks:{callback:pctTick,font:{size:10}},grid:{color:c=>c.tick.value===0?'rgba(255,255,255,0.22)':GRID}}}}});
+  applyRange();
   $('leg').innerHTML=(bench?`<button class="legitem${hidden.has(BENCH.name)?' off':''}" data-name="${BENCH.name}"><span class="legdash"></span>${BENCH.name}</button>`:'')+
     ranked.map(p=>`<button class="legitem${hidden.has(p.name)?' off':''}" data-name="${p.name}"><span class="legdot" style="background:${p.color};"></span>${p.name}</button>`).join('');
 
@@ -516,7 +527,22 @@ function renderCharts(){
   charts.etf=hbar('ec',tickers.map(e=>e.t),tickers.map(e=>+(rets[e.t]*100).toFixed(2)),tickers.map(e=>e.owner.color),
     c=>{const e=tickers[c.dataIndex];return ` ${sgn(c.raw)} · ${usd(prices[e.t])} · ${e.owner===benchOwner?'S&P 500 benchmark':`${e.owner.name} (${(e.w*100).toFixed(0)}%)`}`;},!!bench);
 }
+// Index of the first date inside the selected window.
+function rangeStart(){
+  const m=RANGES[range];if(!m)return 0;
+  const d=new Date(D.dates[D.n-1]+'T12:00:00');d.setMonth(d.getMonth()-m);
+  const i=D.dates.findIndex(x=>x>=d.toISOString().slice(0,10));
+  return i<0?0:i;
+}
+// Zoom the line chart to the window; the y-axis rescales to the visible data.
+function applyRange(){
+  const c=charts.line;if(!c)return;
+  c.options.scales.x.min=rangeStart();c.options.scales.x.max=D.n-1;
+  c.update('none');
+}
 $('vch').addEventListener('click',ev=>{
+  const r=ev.target.closest('.rng button');
+  if(r){range=r.dataset.r;document.querySelectorAll('.rng button').forEach(x=>{x.classList.toggle('on',x===r);x.setAttribute('aria-pressed',x===r);});applyRange();return;}
   const b=ev.target.closest('.legitem');if(!b||!charts.line)return;
   const name=b.dataset.name,ds=charts.line.data.datasets.find(d=>d.label===name);
   hidden.has(name)?hidden.delete(name):hidden.add(name);
