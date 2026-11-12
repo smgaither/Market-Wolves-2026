@@ -140,7 +140,6 @@ button{font:inherit;color:inherit;}
 .rbadge.pos{background:var(--grn-d);} .rbadge.neg{background:var(--red-d);} .rbadge.neu{background:var(--surf2);}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;}
 .ecard{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;}
-.ecard.bench{background:transparent;border-style:dashed;border-color:var(--bdr2);}
 .ectop{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;gap:8px;}
 .ectk{font-size:10px;letter-spacing:.08em;color:var(--mut);}
 .ecpx{font-size:12px;color:var(--txt);}
@@ -251,7 +250,7 @@ const PLAYERS=[
   {name:'GarrBear',etfs:[{t:'TQQQ',name:'ProShares UltraPro QQQ',w:1.00}]},
 ];
 // Benchmark: shown alongside players but never ranked.
-const BENCH={t:'VOO',name:'S&P 500 (VOO)',etfName:'Vanguard S&P 500 ETF',color:'#c9cbb8'};
+const BENCH={t:'VOO',name:'S&P 500 (VOO)',color:'#c9cbb8'};
 // Colors are tied to the player (not the rank) so they stay put when the standings change.
 const PAL=['#7ecb8f','#8fbbca','#d4a843','#e07b6a','#b5a8e0','#e58fc4'];
 const AVBG=['#1a2e1a','#1e2530','#2a2010','#2a1a1a','#1e1a2a','#2a1a25'];
@@ -426,20 +425,16 @@ $('vlb').addEventListener('click',ev=>{
   o?openCards.add(name):openCards.delete(name);
 });
 
-function ecard(e,extra,cls=''){
+function ecard(e,extra){
   const r=rets[e.t],dr=dayRets[e.t];
-  return`<div class="ecard${cls}">
+  return`<div class="ecard">
     <div class="ectop"><div class="ectk">${e.t}</div><div class="ecpx">${usd(prices[e.t])}</div></div>
     <div class="ecnm">${e.name}</div>
     <div class="ecbot"><div class="ecwt">${extra}${ok(dr)?`<span class="${rc(dr)}">${fmt(dr)} day</span>`:''}</div><div class="ecret ${rc(r)}">${fmt(r)}</div></div>
   </div>`;
 }
 function renderHoldings(){
-  let h='';
-  if(bench)h+=`<div class="hplayer">
-    <div class="hname"><div class="avt bench" style="width:32px;height:32px;">S&amp;P</div><span>${BENCH.name}</span><span class="btag">Benchmark</span></div>
-    <div class="hgrid">${ecard({t:BENCH.t,name:BENCH.etfName},'',' bench')}</div></div>`;
-  h+=ranked.map(p=>`<div class="hplayer">
+  const h=ranked.map(p=>`<div class="hplayer">
     <div class="hname">
       <div class="avt" style="background:${p.bg};color:${p.color};width:32px;height:32px;font-size:11px;">${ini(p.name)}</div>
       <span>${p.name}</span><span class="rbadge ${rc(p.pr)}">${fmt(p.pr)}</span>
