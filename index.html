@@ -1,67 +1,408 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#0d0f0e"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" type="image/png" href="icons/icon-192.png"/>
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Wolves"/>
 <title>Market Wolves 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,500;0,700;1,300&display=swap" rel="stylesheet"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-:root{--bg:#0d0f0e;--card:#161a18;--line:#26302b;--tx:#e8ece9;--mu:#8a9690;--up:#4ade80;--dn:#f87171}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
-.w{max-width:980px;margin:0 auto;padding:24px 16px 60px}
-h1{font-family:Georgia,serif;font-size:32px;margin:0}.sub{color:var(--mu);font-size:13px;margin:4px 0 20px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
-.row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line);cursor:pointer}
-.row:last-child{border:0}.rk{width:28px;font-family:ui-monospace,monospace;color:var(--mu)}
-.nm{flex:1;font-weight:600}.pc{font-family:ui-monospace,monospace;font-weight:600}
-.up{color:var(--up)}.dn{color:var(--dn)}
-.det{display:none;padding:6px 4px 12px 40px;color:var(--mu);font-size:13px}.det.o{display:block}
-.det div{display:flex;justify-content:space-between;max-width:420px;padding:2px 0}
-.msg{padding:14px;border:1px solid var(--line);border-radius:10px;color:var(--mu)}
-.err{color:var(--dn)}.note{color:var(--mu);font-size:12px;margin-top:14px}
-canvas{max-height:360px}
-</style></head><body><div class="w">
-<h1>Market Wolves 2026</h1>
-<div class="sub" id="sub">Loading…</div>
-<div id="app"><div class="msg">Loading data…</div></div>
-<div class="note">Total return including dividends (dividend-adjusted closes) from Jan 7, 2026. Portfolio return = Σ weight × ETF return. Refreshes automatically.</div>
+:root{--bg:#0d0f0e;--surf:#151815;--surf2:#1c1f1b;--bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);--txt:#e8ead6;--mut:#7a7d6e;--grn:#7ecb8f;--grn-d:rgba(126,203,143,0.13);--red:#e07b6a;--red-d:rgba(224,123,106,0.13);--gld:#d4a843;--acc:#b5d18b;}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{background:var(--bg);color:var(--txt);font-family:'DM Mono',ui-monospace,monospace;font-size:14px;-webkit-text-size-adjust:100%;}
+body{min-height:100vh;background:var(--bg);}
+button{font:inherit;color:inherit;}
+.shell{max-width:1040px;margin:0 auto;padding:2.5rem 1.5rem 4rem;}
+
+/* header */
+.hdr{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;}
+.hdr h1{font-family:'Fraunces',Georgia,serif;font-size:2.6rem;font-weight:700;letter-spacing:-0.02em;color:var(--acc);line-height:1.05;}
+.hdr h1 em{font-style:italic;font-weight:300;color:var(--gld);}
+.hdr p{color:var(--mut);font-size:11px;margin-top:6px;letter-spacing:0.06em;text-transform:uppercase;}
+.rbtn{background:transparent;border:1px solid var(--bdr2);color:var(--txt);padding:9px 16px;border-radius:4px;cursor:pointer;font-size:12px;letter-spacing:0.05em;transition:all .2s;display:flex;align-items:center;gap:8px;}
+.rbtn:hover{border-color:var(--acc);color:var(--acc);}
+.rbtn:disabled{opacity:.4;cursor:not-allowed;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spin{display:inline-block;animation:spin 1s linear infinite;}
+
+/* status */
+.sbar{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;font-size:11px;color:var(--mut);line-height:1.5;}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--mut);flex-shrink:0;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.sdot.live{background:var(--grn);box-shadow:0 0 6px var(--grn);animation:pulse 2s ease-in-out infinite;}
+.sdot.err{background:var(--red);}
+.ebox{background:var(--red-d);border:1px solid rgba(224,123,106,.3);border-radius:6px;padding:12px 16px;font-size:12px;color:var(--red);margin-bottom:1rem;line-height:1.6;}
+
+/* metrics */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.75rem;}
+.metric{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:14px 16px;min-width:0;}
+.mlbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;}
+.mval{font-family:'Fraunces',Georgia,serif;font-size:1.45rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.mval.gld{color:var(--gld);}
+.msub{font-size:10px;color:var(--mut);margin-top:3px;}
+.pos{color:var(--grn);} .neg{color:var(--red);} .neu{color:var(--mut);}
+
+/* tabs */
+.tabs{display:flex;border-bottom:1px solid var(--bdr);margin-bottom:1.5rem;}
+.tab{background:none;border:none;color:var(--mut);padding:10px 18px;cursor:pointer;font-size:12px;letter-spacing:.06em;text-transform:uppercase;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;white-space:nowrap;}
+.tab:hover{color:var(--txt);}
+.tab.active{color:var(--acc);border-bottom-color:var(--acc);}
+.view{display:none;} .view.active{display:block;}
+
+/* leaderboard cards */
+.pcard{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;margin-bottom:10px;overflow:hidden;transition:border-color .2s;}
+.pcard:hover{border-color:var(--bdr2);}
+.pcard.rank1{border-color:rgba(212,168,67,.4);}
+.pcard.open{border-color:var(--bdr2);}
+.chead{display:block;width:100%;background:none;border:0;text-align:left;cursor:pointer;}
+.chead:focus-visible{outline:1px solid var(--acc);outline-offset:-1px;}
+.ctop{display:flex;align-items:center;gap:14px;padding:14px 18px;}
+.rnum{font-family:'Fraunces',Georgia,serif;font-size:1.1rem;font-weight:300;color:var(--mut);min-width:26px;}
+.rnum.g{color:var(--gld);}
+.avt{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:500;flex-shrink:0;font-family:'Fraunces',Georgia,serif;}
+.pinfo{flex:1;min-width:0;}
+.pname{font-size:14px;font-weight:500;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.petfs{font-size:10px;color:var(--mut);margin-top:2px;letter-spacing:.03em;}
+.pright{text-align:right;}
+.pret{font-family:'Fraunces',Georgia,serif;font-size:1.3rem;font-weight:500;white-space:nowrap;}
+.pday{font-size:10px;margin-top:1px;white-space:nowrap;}
+.chev{color:var(--mut);font-size:10px;margin-left:4px;transition:transform .2s;}
+.pcard.open .chev{transform:rotate(180deg);}
+.bzone{padding:0 18px 12px;}
+.btrack{height:4px;background:var(--surf2);border-radius:2px;position:relative;}
+.bfill{height:100%;border-radius:2px;position:absolute;top:0;transition:width .4s,left .4s;}
+.bctr{position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--bdr2);}
+.epanel{border-top:1px solid var(--bdr);display:none;}
+.pcard.open .epanel{display:block;}
+.etbl{width:100%;border-collapse:collapse;}
+.etbl th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:10px 18px 8px;text-align:left;border-bottom:1px solid var(--bdr);font-weight:400;}
+.etbl td{padding:10px 18px;font-size:12px;border-bottom:1px solid var(--bdr);color:var(--txt);vertical-align:middle;}
+.etbl .r{text-align:right;white-space:nowrap;}
+.etbl tr:last-child td{border-bottom:none;}
+.hold{display:flex;align-items:center;gap:10px;}
+.tpill{display:inline-block;background:var(--surf2);border:1px solid var(--bdr);border-radius:3px;padding:2px 7px;font-size:10px;letter-spacing:.05em;color:var(--mut);flex-shrink:0;}
+
+/* charts */
+.csect{background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:20px;margin-bottom:14px;}
+.ctitle{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:14px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.cbox{position:relative;}
+.legrow{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:14px;}
+.legitem{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--mut);background:none;border:0;cursor:pointer;padding:2px 0;}
+.legitem.off{opacity:.35;}
+.legdot{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start;}
+.cgrid .csect{margin-bottom:0;}
+
+/* holdings */
+.hplayer{margin-bottom:1.75rem;}
+.hname{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.hname span{font-size:14px;font-weight:500;}
+.rbadge{font-family:'Fraunces',Georgia,serif;font-size:12px;padding:2px 8px;border-radius:3px;}
+.rbadge.pos{background:var(--grn-d);} .rbadge.neg{background:var(--red-d);} .rbadge.neu{background:var(--surf2);}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;}
+.ecard{background:var(--surf);border:1px solid var(--bdr);border-radius:6px;padding:12px 14px;}
+.ectk{font-size:10px;letter-spacing:.08em;color:var(--mut);margin-bottom:4px;}
+.ecnm{font-size:12px;color:var(--txt);margin-bottom:8px;line-height:1.4;}
+.ecbot{display:flex;justify-content:space-between;align-items:baseline;gap:8px;}
+.ecwt{font-size:10px;color:var(--mut);}
+.ecret{font-family:'Fraunces',Georgia,serif;font-size:1.15rem;}
+
+@keyframes shimmer{0%{opacity:.3}50%{opacity:.7}100%{opacity:.3}}
+.skel{background:var(--surf2);border-radius:3px;animation:shimmer 1.5s ease-in-out infinite;display:block;}
+.note{font-size:10px;color:var(--mut);margin-top:1.75rem;line-height:1.8;border-top:1px solid var(--bdr);padding-top:1rem;}
+.note strong{color:var(--txt);font-weight:500;}
+
+/* phone */
+@media (max-width:720px){
+  .cgrid{grid-template-columns:1fr;}
+  .metrics{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:560px){
+  .shell{padding:calc(1.5rem + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(3rem + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));}
+  .hdr{align-items:flex-start;flex-wrap:nowrap;margin-bottom:1rem;}
+  .hdr p{line-height:1.6;}
+  .rbtn{flex-shrink:0;margin-top:6px;}
+  .hdr h1{font-size:2.1rem;}
+  .hdr p{font-size:10px;}
+  .rbtn{padding:8px 12px;}
+  .rbtn .lbl{display:none;}
+  .metric{padding:12px;}
+  .mval{font-size:1.2rem;}
+  .tab{flex:1;padding:10px 4px;font-size:11px;letter-spacing:.03em;}
+  .ctop{gap:10px;padding:12px 14px;}
+  .rnum{min-width:20px;font-size:1rem;}
+  .avt{width:32px;height:32px;font-size:12px;}
+  .pret{font-size:1.15rem;}
+  .bzone{padding:0 14px 12px;}
+  .etbl th,.etbl td{padding:9px 6px;}
+  .etbl th:first-child,.etbl td:first-child{padding-left:14px;}
+  .etbl th:last-child,.etbl td:last-child{padding-right:14px;}
+  .hold{flex-direction:column;align-items:flex-start;gap:4px;}
+  .hold .nm{font-size:10px;color:var(--mut);line-height:1.35;}
+  .csect{padding:14px;}
+  .hgrid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<header class="hdr">
+  <div>
+    <h1>Market <em>Wolves</em></h1>
+    <p>Fantasy Finance League &nbsp;·&nbsp; 2026 Season &nbsp;·&nbsp; Since Jan 7</p>
+  </div>
+  <button class="rbtn" id="rbtn" onclick="load(false)" aria-label="Refresh prices">
+    <span id="ric">&#8635;</span><span class="lbl">Refresh</span>
+  </button>
+</header>
+
+<div class="sbar"><div class="sdot" id="sdot"></div><span id="stxt">Loading prices…</span></div>
+<div class="ebox" id="ebox" style="display:none;"></div>
+
+<div class="metrics" id="metrics">
+  <div class="metric"><div class="mlbl">Leader</div><span class="skel" style="height:24px;width:75%;"></span></div>
+  <div class="metric"><div class="mlbl">Best return</div><span class="skel" style="height:24px;width:55%;"></span></div>
+  <div class="metric"><div class="mlbl">League avg</div><span class="skel" style="height:24px;width:55%;"></span></div>
+  <div class="metric"><div class="mlbl">In the green</div><span class="skel" style="height:24px;width:45%;"></span></div>
+</div>
+
+<nav class="tabs" role="tablist">
+  <button class="tab active" data-tab="lb" role="tab">Leaderboard</button>
+  <button class="tab" data-tab="ch" role="tab">Returns chart</button>
+  <button class="tab" data-tab="hd" role="tab">All holdings</button>
+</nav>
+
+<section class="view active" id="vlb">
+  <div class="pcard"><div class="ctop"><span class="skel" style="height:36px;width:100%;"></span></div></div>
+  <div class="pcard"><div class="ctop"><span class="skel" style="height:36px;width:100%;"></span></div></div>
+  <div class="pcard"><div class="ctop"><span class="skel" style="height:36px;width:100%;"></span></div></div>
+</section>
+<section class="view" id="vch"></section>
+<section class="view" id="vhd"></section>
+
+<div class="note">
+  Returns are <strong>total return including dividends</strong>, using dividend-adjusted closing prices from Jan 7, 2026 to the latest trading day.
+  Portfolio return = Σ weight × ETF return. Prices update every few minutes during market hours; this page refreshes itself.
+</div>
+
 </div>
 <script>
 const PLAYERS=[
-{name:'Jalfery',etfs:[{t:'IEF',w:.45},{t:'GLD',w:.30},{t:'DBMF',w:.25}]},
-{name:'Gray Guy',etfs:[{t:'SMH',w:.40},{t:'DRIV',w:.35},{t:'AGG',w:.25}]},
-{name:'JPenis',etfs:[{t:'VTEB',w:.40},{t:'SHLD',w:.35},{t:'NLR',w:.25}]},
-{name:'Stew',etfs:[{t:'AIQ',w:1/3},{t:'XBI',w:1/3},{t:'XAR',w:1/3}]},
-{name:'Chino Bot 4.0',etfs:[{t:'ARGT',w:.10},{t:'ARKK',w:.40},{t:'BETE',w:.50}]},
-{name:'GarrBear',etfs:[{t:'TQQQ',w:1}]}];
-const COLORS=['#4ade80','#60a5fa','#fbbf24','#f472b6','#a78bfa','#fb923c'];
-const pct=v=>(v>=0?'+':'')+(v*100).toFixed(2)+'%';
-const cls=v=>v>=0?'up':'dn';
+  {name:'Jalfery',etfs:[{t:'IEF',name:'iShares 7-10 Year Treasury Bond',w:0.45},{t:'GLD',name:'SPDR Gold Shares',w:0.30},{t:'DBMF',name:'iMGP DBi Managed Futures Strategy',w:0.25}]},
+  {name:'Gray Guy',etfs:[{t:'SMH',name:'VanEck Semiconductor ETF',w:0.40},{t:'DRIV',name:'Global X Autonomous & Electric Vehicles',w:0.35},{t:'AGG',name:'iShares Core U.S. Aggregate Bond',w:0.25}]},
+  {name:'JPenis',etfs:[{t:'VTEB',name:'Vanguard Tax-Exempt Bond Index',w:0.40},{t:'SHLD',name:'Global X Defense Tech ETF',w:0.35},{t:'NLR',name:'VanEck Uranium and Nuclear ETF',w:0.25}]},
+  {name:'Stew',etfs:[{t:'AIQ',name:'Global X AI & Technology ETF',w:1/3},{t:'XBI',name:'SPDR S&P Biotech',w:1/3},{t:'XAR',name:'SPDR S&P Aerospace & Defense',w:1/3}]},
+  {name:'Chino Bot 4.0',etfs:[{t:'ARGT',name:'Global X MSCI Argentina ETF',w:0.10},{t:'ARKK',name:'ARK Innovation ETF',w:0.40},{t:'BETE',name:'ProShares Bitcoin & Ether Equal Weight',w:0.50}]},
+  {name:'GarrBear',etfs:[{t:'TQQQ',name:'ProShares UltraPro QQQ',w:1.00}]},
+];
+// Colors are tied to the player (not the rank) so they stay put when the standings change.
+const PAL=['#7ecb8f','#8fbbca','#d4a843','#e07b6a','#b5a8e0','#e58fc4'];
+const AVBG=['#1a2e1a','#1e2530','#2a2010','#2a1a1a','#1e1a2a','#2a1a25'];
+PLAYERS.forEach((p,i)=>{p.color=PAL[i];p.bg=AVBG[i];});
+
 // Optional: paste your Cloudflare Worker URL here for near-real-time data (see README). Leave '' to use data.json only.
 const LIVE_URL='';
+
+const $=id=>document.getElementById(id);
+const fmt=v=>v==null||isNaN(v)?'—':(v>=0?'+':'')+(v*100).toFixed(2)+'%';
+const rc=v=>v==null||isNaN(v)?'neu':v>=0?'pos':'neg';
+const ini=n=>n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const isPhone=()=>window.matchMedia('(max-width:560px)').matches;
+
+let D=null,ranked=[],rets={},dayRets={},activeTab='lb',charts={},hidden=new Set(),openCards=new Set();
+
+/* ---------- data ---------- */
 async function getJSON(u,ms){const c=new AbortController();const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{signal:c.signal,cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();if(j.error)throw new Error(j.error);return j}finally{clearTimeout(t)}}
+let busy=false;
 async function load(first){
- let d=null;
- if(LIVE_URL){try{d=await getJSON(LIVE_URL,10000)}catch(e){console.warn('live feed failed, using data.json',e)}}
- if(!d){try{d=await getJSON('data.json?'+Date.now(),10000)}catch(e){if(first){document.getElementById('sub').textContent='';
-  document.getElementById('app').innerHTML='<div class="msg err">Could not load data.json: '+e.message+'. If this is first setup, run the "Update prices" workflow from the repo Actions tab.</div>'}return}}
- render(d);
+  if(busy)return;busy=true;setBusy(true);
+  let d=null;
+  try{
+    if(LIVE_URL){try{d=await getJSON(LIVE_URL,10000)}catch(e){console.warn('live feed failed, using data.json',e)}}
+    if(!d){try{d=await getJSON('data.json?'+Date.now(),10000)}catch(e){
+      if(first||!D){setStatus('err','Failed to load');showErr('Could not load data.json: '+e.message+'. If this is first setup, run the "Update prices" workflow from the repo Actions tab.');}
+      else setStatus('err','Refresh failed · showing last data');
+      return;}}
+    hideErr();prepare(d);renderAll();
+  }finally{busy=false;setBusy(false);}
 }
-load(true);setInterval(()=>load(false),LIVE_URL?60000:120000);
-let charts=[];
-function render(d){
- charts.forEach(c=>c.destroy());charts=[];
- const n=d.dates.length-1;
- const last=t=>{const s=d.series[t];for(let i=n;i>=0;i--)if(s[i]!=null)return s[i];return 0};
- const port=p=>d.dates.map((_,i)=>p.etfs.reduce((a,e)=>a+e.w*(d.series[e.t][i]??0),0));
- const rows=PLAYERS.map((p,i)=>({p,c:COLORS[i],ser:port(p)})).map(o=>({...o,r:o.ser[n]})).sort((a,b)=>b.r-a.r);
- document.getElementById('sub').textContent='Data through '+d.dates[n]+' · refreshed '+new Date(d.updated).toLocaleString();
- let h='<div class="card">'+rows.map((o,i)=>`<div class="row" onclick="this.nextElementSibling.classList.toggle('o')"><span class="rk">${i+1}</span><span class="nm" style="color:${o.c}">${o.p.name}</span><span class="pc ${cls(o.r)}">${pct(o.r)}</span></div><div class="det">${o.p.etfs.map(e=>`<div><span>${e.t} · ${(e.w*100).toFixed(0)}%</span><span class="${cls(last(e.t))}">${pct(last(e.t))}</span></div>`).join('')}</div>`).join('')+'</div>';
- h+='<div class="card"><canvas id="ln"></canvas></div><div class="card"><canvas id="bar"></canvas></div>';
- document.getElementById('app').innerHTML=h;
- const grid={color:'#26302b'},tick={color:'#8a9690'};
- if(typeof Chart==='undefined'){document.querySelectorAll('canvas').forEach(c=>c.parentNode.remove());return}
- charts.push(new Chart(ln,{type:'line',data:{labels:d.dates,datasets:rows.map(o=>({label:o.p.name,data:o.ser.map(v=>v*100),borderColor:o.c,borderWidth:2,pointRadius:0,tension:.2}))},
-  options:{plugins:{legend:{labels:{color:'#e8ece9'}},title:{display:true,text:'Cumulative total return (%)',color:'#e8ece9'}},scales:{x:{ticks:{...tick,maxTicksLimit:8},grid},y:{ticks:tick,grid}},interaction:{mode:'index',intersect:false},animation:false}}));
- charts.push(new Chart(bar,{type:'bar',data:{labels:rows.map(o=>o.p.name),datasets:[{data:rows.map(o=>o.r*100),backgroundColor:rows.map(o=>o.c)}]},
-  options:{plugins:{legend:{display:false},title:{display:true,text:'Current total return (%)',color:'#e8ece9'}},scales:{x:{ticks:tick,grid},y:{ticks:tick,grid}},animation:false}}));
+
+// Forward-fill gaps so a missing price on one day doesn't zero out a portfolio.
+function prepare(d){
+  const n=d.dates.length;
+  const S={};
+  PLAYERS.forEach(p=>p.etfs.forEach(e=>{
+    const src=d.series[e.t]||[];let last=null;
+    S[e.t]=Array.from({length:n},(_,i)=>{if(src[i]!=null)last=src[i];return last;});
+  }));
+  D={...d,S,n};
+  const L=n-1;
+  rets={};dayRets={};
+  Object.entries(S).forEach(([t,s])=>{
+    rets[t]=s[L];
+    dayRets[t]=L>0&&s[L]!=null&&s[L-1]!=null?(1+s[L])/(1+s[L-1])-1:null;
+  });
+  ranked=PLAYERS.map(p=>{
+    const ser=d.dates.map((_,i)=>{let v=0;for(const e of p.etfs){if(S[e.t][i]==null)return null;v+=e.w*S[e.t][i];}return v;});
+    const pr=ser[L],prev=L>0?ser[L-1]:null;
+    return {...p,ser,pr,day:pr!=null&&prev!=null?(1+pr)/(1+prev)-1:null};
+  }).sort((a,b)=>(b.pr??-Infinity)-(a.pr??-Infinity)).map((p,i)=>({...p,rank:i+1}));
 }
-</script></body></html>
+
+/* ---------- render ---------- */
+function renderAll(){
+  const L=D.n-1,last=D.dates[L];
+  const upd=new Date(D.updated),ageMin=(Date.now()-upd)/60000;
+  const dt=new Date(last+'T12:00:00').toLocaleDateString([],{month:'short',day:'numeric'});
+  setStatus(ageMin<30?'live':'',`Prices through ${dt} · updated ${upd.toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}`);
+  renderMetrics();renderLB();
+  if(activeTab==='ch')renderCharts();
+  renderHoldings();
+}
+
+function renderMetrics(){
+  const v=ranked.filter(p=>p.pr!=null);
+  const best=v[0],worst=v[v.length-1];
+  const avg=v.length?v.reduce((s,p)=>s+p.pr,0)/v.length:null,grn=v.filter(p=>p.pr>=0).length;
+  const gap=best&&v[1]?best.pr-v[1].pr:null;
+  $('metrics').innerHTML=`
+    <div class="metric"><div class="mlbl">Leader</div><div class="mval gld">${best?best.name:'—'}</div><div class="msub">${gap!=null?'up '+(gap*100).toFixed(2)+' pts on #2':''}</div></div>
+    <div class="metric"><div class="mlbl">Best return</div><div class="mval ${rc(best?.pr)}">${fmt(best?.pr)}</div><div class="msub">Worst ${fmt(worst?.pr)}</div></div>
+    <div class="metric"><div class="mlbl">League avg</div><div class="mval ${rc(avg)}">${fmt(avg)}</div><div class="msub">${v.length} portfolios</div></div>
+    <div class="metric"><div class="mlbl">In the green</div><div class="mval">${grn} / ${v.length}</div><div class="msub">${v.length-grn} underwater</div></div>`;
+}
+
+function renderLB(){
+  const maxA=Math.max(...ranked.filter(p=>p.pr!=null).map(p=>Math.abs(p.pr)),0.01);
+  $('vlb').innerHTML=ranked.map(p=>{
+    const bp=p.pr!=null?Math.abs(p.pr)/maxA*50:0;
+    const bc=p.pr==null?'var(--mut)':p.pr>=0?'var(--grn)':'var(--red)';
+    const bl=p.pr!=null&&p.pr>=0?50:50-bp;
+    const rows=p.etfs.map(e=>{const r=rets[e.t];return`<tr>
+      <td><div class="hold"><span class="tpill">${e.t}</span><span class="nm">${e.name}</span></div></td>
+      <td class="r neu">${(e.w*100).toFixed(0)}%</td>
+      <td class="r ${rc(r)}">${fmt(r)}</td>
+      <td class="r ${rc(r)}">${fmt(r!=null?r*e.w:null)}</td></tr>`;}).join('');
+    const open=openCards.has(p.name);
+    return`<div class="pcard${p.rank===1?' rank1':''}${open?' open':''}" data-name="${p.name}">
+      <button class="chead" aria-expanded="${open}">
+        <div class="ctop">
+          <div class="rnum${p.rank===1?' g':''}">${String(p.rank).padStart(2,'0')}</div>
+          <div class="avt" style="background:${p.bg};color:${p.color};">${ini(p.name)}</div>
+          <div class="pinfo"><div class="pname">${p.name}</div><div class="petfs">${p.etfs.map(e=>e.t).join(' · ')}</div></div>
+          <div class="pright"><div class="pret ${rc(p.pr)}">${fmt(p.pr)}</div><div class="pday ${rc(p.day)}">${p.day!=null?fmt(p.day)+' day':''}</div></div>
+          <div class="chev">&#9660;</div>
+        </div>
+        <div class="bzone"><div class="btrack"><div class="bctr"></div><div class="bfill" style="background:${bc};width:${bp}%;left:${bl}%;"></div></div></div>
+      </button>
+      <div class="epanel"><table class="etbl">
+        <thead><tr><th>Holding</th><th class="r">Weight</th><th class="r">Return</th><th class="r">Contrib.</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+}
+$('vlb').addEventListener('click',ev=>{
+  const h=ev.target.closest('.chead');if(!h)return;
+  const card=h.parentElement,name=card.dataset.name;
+  const o=card.classList.toggle('open');h.setAttribute('aria-expanded',o);
+  o?openCards.add(name):openCards.delete(name);
+});
+
+function renderHoldings(){
+  $('vhd').innerHTML=ranked.map(p=>`<div class="hplayer">
+    <div class="hname">
+      <div class="avt" style="background:${p.bg};color:${p.color};width:32px;height:32px;font-size:11px;">${ini(p.name)}</div>
+      <span>${p.name}</span><span class="rbadge ${rc(p.pr)}">${fmt(p.pr)}</span>
+    </div>
+    <div class="hgrid">${p.etfs.map(e=>{const r=rets[e.t],dr=dayRets[e.t];return`<div class="ecard">
+      <div class="ectk">${e.t}</div><div class="ecnm">${e.name}</div>
+      <div class="ecbot"><div class="ecwt">${(e.w*100).toFixed(0)}% weight${dr!=null?` · <span class="${rc(dr)}">${fmt(dr)} day</span>`:''}</div><div class="ecret ${rc(r)}">${fmt(r)}</div></div>
+    </div>`;}).join('')}</div>
+  </div>`).join('');
+}
+
+/* ---------- charts ---------- */
+const GRID='rgba(255,255,255,0.05)',TICK='#7a7d6e';
+const pctTick=v=>v+'%';
+function renderCharts(){
+  const v=$('vch');
+  if(typeof Chart==='undefined'){v.innerHTML='<div class="ebox">Charts could not load (Chart.js blocked or offline).</div>';return;}
+  Object.values(charts).forEach(c=>c.destroy());charts={};
+  const phone=isPhone();
+  const tickers=PLAYERS.flatMap(p=>p.etfs.map(e=>({...e,owner:p}))).filter(e=>rets[e.t]!=null).sort((a,b)=>rets[b.t]-rets[a.t]);
+  v.innerHTML=`
+    <div class="csect"><div class="ctitle"><span>Cumulative total return</span><span>Jan 7 → ${D.dates[D.n-1]}</span></div>
+      <div class="legrow" id="leg"></div>
+      <div class="cbox" style="height:${phone?300:380}px;"><canvas id="lc"></canvas></div></div>
+    <div class="cgrid">
+      <div class="csect"><div class="ctitle">Portfolio return to date</div><div class="cbox" style="height:${ranked.length*40+30}px;"><canvas id="bc"></canvas></div></div>
+      <div class="csect"><div class="ctitle">Individual ETF returns</div><div class="cbox" style="height:${tickers.length*24+30}px;"><canvas id="ec"></canvas></div></div>
+    </div>`;
+  Chart.defaults.font.family="'DM Mono', ui-monospace, monospace";
+  Chart.defaults.color=TICK;
+  const tip={backgroundColor:'#1c1f1b',borderColor:'rgba(255,255,255,0.13)',borderWidth:1,titleColor:'#e8ead6',bodyColor:'#e8ead6',padding:10,boxPadding:4,usePointStyle:true};
+
+  // Line chart: draw in league order, but keep each player's own color.
+  const labels=D.dates.map(s=>new Date(s+'T12:00:00').toLocaleDateString([],{month:'short',day:'numeric'}));
+  charts.line=new Chart($('lc'),{type:'line',
+    data:{labels,datasets:ranked.map(p=>({label:p.name,data:p.ser.map(x=>x==null?null:+(x*100).toFixed(2)),borderColor:p.color,backgroundColor:p.color,borderWidth:p.rank===1?2.5:1.75,pointRadius:0,pointHoverRadius:4,tension:.15,hidden:hidden.has(p.name)}))},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{...tip,itemSort:(a,b)=>b.raw-a.raw,callbacks:{label:c=>` ${c.dataset.label}: ${c.raw>=0?'+':''}${c.raw.toFixed(2)}%`}}},
+      scales:{x:{ticks:{maxTicksLimit:phone?5:9,maxRotation:0,font:{size:10}},grid:{display:false}},
+              y:{ticks:{callback:pctTick,font:{size:10}},grid:{color:c=>c.tick.value===0?'rgba(255,255,255,0.22)':GRID}}}}});
+  $('leg').innerHTML=ranked.map(p=>`<button class="legitem${hidden.has(p.name)?' off':''}" data-name="${p.name}"><span class="legdot" style="background:${p.color};"></span>${p.name}</button>`).join('');
+
+  const hbar=(id,lbls,vals,colors,label)=>new Chart($(id),{type:'bar',
+    data:{labels:lbls,datasets:[{data:vals,backgroundColor:colors.map(c=>c+'cc'),borderColor:colors,borderWidth:1,borderRadius:3,borderSkipped:false,barPercentage:.8,categoryPercentage:.85}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,animation:false,
+      plugins:{legend:{display:false},tooltip:{...tip,callbacks:{label}}},
+      scales:{x:{ticks:{callback:pctTick,font:{size:10},maxTicksLimit:phone?5:7},grid:{color:c=>c.tick.value===0?'rgba(255,255,255,0.22)':GRID}},
+              y:{ticks:{color:'#e8ead6',font:{size:11},autoSkip:false},grid:{display:false}}}}});
+  const sgn=x=>(x>=0?'+':'')+x.toFixed(2)+'%';
+  charts.bar=hbar('bc',ranked.map(p=>p.name),ranked.map(p=>+(p.pr*100).toFixed(2)),ranked.map(p=>p.pr>=0?'#7ecb8f':'#e07b6a'),c=>' '+sgn(c.raw));
+  charts.etf=hbar('ec',tickers.map(e=>e.t),tickers.map(e=>+(rets[e.t]*100).toFixed(2)),tickers.map(e=>e.owner.color),c=>{const e=tickers[c.dataIndex];return ` ${sgn(c.raw)} · ${e.owner.name} (${(e.w*100).toFixed(0)}%)`;});
+}
+$('vch').addEventListener('click',ev=>{
+  const b=ev.target.closest('.legitem');if(!b||!charts.line)return;
+  const name=b.dataset.name,ds=charts.line.data.datasets.find(d=>d.label===name);
+  hidden.has(name)?hidden.delete(name):hidden.add(name);
+  ds.hidden=hidden.has(name);b.classList.toggle('off',ds.hidden);charts.line.update();
+});
+
+/* ---------- ui ---------- */
+document.querySelector('.tabs').addEventListener('click',ev=>{
+  const b=ev.target.closest('.tab');if(!b)return;
+  activeTab=b.dataset.tab;
+  document.querySelectorAll('.tab').forEach(t=>{t.classList.toggle('active',t===b);t.setAttribute('aria-selected',t===b);});
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='v'+activeTab));
+  if(activeTab==='ch'&&D)renderCharts();
+});
+// Rebuild charts when crossing the phone breakpoint (heights/tick counts differ).
+let wasPhone=isPhone();
+window.addEventListener('resize',()=>{const p=isPhone();if(p!==wasPhone){wasPhone=p;if(activeTab==='ch'&&D)renderCharts();}});
+
+function setStatus(s,m){$('sdot').className='sdot'+(s==='live'?' live':s==='err'?' err':'');$('stxt').textContent=m;}
+function setBusy(v){$('rbtn').disabled=v;$('ric').className=v?'spin':'';}
+function showErr(m){const b=$('ebox');b.textContent=m;b.style.display='block';}
+function hideErr(){$('ebox').style.display='none';}
+
+load(true);
+setInterval(()=>load(false),LIVE_URL?60000:120000);
+// Home-screen apps get suspended in the background; refresh as soon as it comes back.
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')load(false);});
+if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(e=>console.warn('SW failed',e)));
+</script>
+</body>
+</html>
