@@ -50,6 +50,7 @@ button{font:inherit;color:inherit;}
 .mlbl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mval{font-family:'Fraunces',Georgia,serif;font-size:1.45rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mval.gld{color:var(--gld);}
+.mval2{font-family:'Fraunces',Georgia,serif;font-size:1.05rem;font-weight:500;margin-top:2px;white-space:nowrap;}
 .msub{font-size:10px;color:var(--mut);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pos{color:var(--grn);} .neg{color:var(--red);} .neu{color:var(--mut);}
 
@@ -119,6 +120,7 @@ button{font:inherit;color:inherit;}
 .cgrid .csect{margin-bottom:0;}
 
 /* risk table */
+.rscroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
 .rtbl{width:100%;border-collapse:collapse;}
 .rtbl th{font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mut);padding:0 10px 10px;text-align:right;font-weight:400;border-bottom:1px solid var(--bdr);white-space:nowrap;}
 .rtbl th:first-child,.rtbl td:first-child{text-align:left;padding-left:0;}
@@ -190,7 +192,7 @@ button{font:inherit;color:inherit;}
   .hold .pm{display:block;font-size:11px;color:var(--txt);}
   .csect{padding:14px;}
   .rtbl th,.rtbl td{padding-left:6px;padding-right:6px;}
-  .rtbl .vol{display:none;}
+  .rtbl{min-width:430px;}
   .rtbl td{font-size:11px;}
   .hgrid{grid-template-columns:1fr;}
 }
@@ -266,7 +268,6 @@ const LIVE_URL='https://market-wolves.arket--olves-2026.workers.dev';
 const $=id=>document.getElementById(id);
 const ok=v=>v!=null&&!isNaN(v);
 const fmt=v=>!ok(v)?'—':(v>=0?'+':'')+(v*100).toFixed(2)+'%';
-const pts=v=>!ok(v)?'—':(v>=0?'+':'')+(v*100).toFixed(2)+' pts';
 const num=v=>!ok(v)?'—':v.toFixed(2);
 const usd=v=>!ok(v)?'—':'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const rc=v=>!ok(v)?'neu':v>=0?'pos':'neg';
@@ -354,12 +355,11 @@ function renderMetrics(){
   const v=ranked.filter(p=>p.pr!=null);
   const best=v[0];
   const avg=v.length?v.reduce((s,p)=>s+p.pr,0)/v.length:null,grn=v.filter(p=>p.pr>=0).length;
-  const gap=best&&v[1]?best.pr-v[1].pr:null;
   const beat=bench?v.filter(p=>p.pr>bench.pr).length:null;
   $('metrics').innerHTML=`
-    <div class="metric"><div class="mlbl">Leader</div><div class="mval gld">${best?best.name:'—'}</div><div class="msub">${best?`<span class="${rc(best.pr)}">${fmt(best.pr)}</span>`:''}${gap!=null?' · up '+(gap*100).toFixed(2)+' pts':''}</div></div>
-    <div class="metric bench"><div class="mlbl">S&amp;P 500 (VOO)</div><div class="mval ${rc(bench?.pr)}">${fmt(bench?.pr)}</div><div class="msub">${bench?usd(prices[BENCH.t])+' · '+`<span class="${rc(bench.day)}">${fmt(bench.day)} day</span>`:'Benchmark unavailable'}</div></div>
-    <div class="metric"><div class="mlbl">League avg</div><div class="mval ${rc(avg)}">${fmt(avg)}</div><div class="msub">${bench&&avg!=null?pts(avg-bench.pr)+' vs S&amp;P':v.length+' portfolios'}</div></div>
+    <div class="metric"><div class="mlbl">Leader</div><div class="mval gld">${best?best.name:'—'}</div><div class="mval2 ${rc(best?.pr)}">${fmt(best?.pr)}</div></div>
+    <div class="metric bench"><div class="mlbl">S&amp;P 500 (VOO)</div><div class="mval ${rc(bench?.pr)}">${fmt(bench?.pr)}</div>${bench?'':'<div class="msub">Benchmark unavailable</div>'}</div>
+    <div class="metric"><div class="mlbl">League avg</div><div class="mval ${rc(avg)}">${fmt(avg)}</div><div class="msub">${bench&&avg!=null?fmt(avg-bench.pr)+' vs S&amp;P':v.length+' portfolios'}</div></div>
     <div class="metric"><div class="mlbl">Beating S&amp;P</div><div class="mval">${beat!=null?beat+' / '+v.length:'—'}</div><div class="msub">${grn} of ${v.length} in the green</div></div>`;
 }
 
@@ -398,14 +398,14 @@ function renderLB(){
           <div class="rnum${p.rank===1?' g':''}">${String(p.rank).padStart(2,'0')}</div>
           <div class="avt" style="background:${p.bg};color:${p.color};">${ini(p.name)}</div>
           <div class="pinfo"><div class="pname">${p.name}</div><div class="petfs">${p.etfs.map(e=>e.t).join(' · ')}</div></div>
-          <div class="pright"><div class="pret ${rc(p.pr)}">${fmt(p.pr)}</div><div class="pday ${rc(p.ex)}">${bench?pts(p.ex)+' vs S&amp;P':''}</div></div>
+          <div class="pright"><div class="pret ${rc(p.pr)}">${fmt(p.pr)}</div><div class="pday ${rc(p.ex)}">${bench?fmt(p.ex)+' vs S&amp;P':''}</div></div>
           <div class="chev">&#9660;</div>
         </div>
         <div class="bzone"><div class="btrack"><div class="bctr"></div>${mark}<div class="bfill" style="background:${bc};width:${b.w}%;left:${b.l}%;"></div></div></div>
       </button>
       <div class="epanel">
         <div class="stats">
-          <div class="stat"><div class="slbl">vs S&amp;P 500</div><div class="sval ${rc(p.ex)}">${pts(p.ex)}</div></div>
+          <div class="stat"><div class="slbl">vs S&amp;P 500</div><div class="sval ${rc(p.ex)}">${fmt(p.ex)}</div></div>
           <div class="stat"><div class="slbl">Beta</div><div class="sval">${num(p.beta)}${lcBeta(p)}</div></div>
           <div class="stat"><div class="slbl">Sharpe</div><div class="sval ${rc(p.sharpe)}">${num(p.sharpe)}${lcSharpe(p)}</div></div>
           <div class="stat"><div class="slbl">Today</div><div class="sval ${rc(p.day)}">${fmt(p.day)}</div></div>
@@ -453,11 +453,12 @@ function renderNote(){
   const anyLc=ranked.some(p=>p.n<MIN_SHARPE);
   $('note').innerHTML=`
   <p>Returns are <strong>total return including dividends</strong>, using dividend-adjusted closing prices from Jan 7, 2026 to the latest trading day.
-  Portfolio return = Σ weight × ETF return (weights fixed on Jan 7, i.e. buy and hold). <strong>vs S&amp;P</strong> = portfolio return − S&amp;P 500 (VOO) return, in percentage points.
+  Portfolio return = Σ weight × ETF return (weights fixed on Jan 7, i.e. buy and hold). <strong>vs S&amp;P</strong> = portfolio return − S&amp;P 500 (VOO) return.
   Prices are the latest trade (live) or close. This page refreshes itself.</p>
   <p><strong>Beta</strong> = covariance of the portfolio's daily returns with VOO's daily returns ÷ variance of VOO's daily returns.
   <strong>Sharpe</strong> = (average daily return − 3.6%/252) ÷ standard deviation of daily returns × √252, using a flat 3.6% risk-free rate (3-month T-bill on Jan 7, 2026).
-  Both use the ${nDays} daily returns since Jan 7, 2026.
+  <strong>Volatility</strong> = standard deviation of daily returns × √252 (annualized).
+  All three use the ${nDays} daily returns since Jan 7, 2026, where a daily return = today's portfolio value ÷ yesterday's − 1.
   <span class="lc">†</span> = low confidence: beta with fewer than ${MIN_BETA} trading days, Sharpe with fewer than ${MIN_SHARPE}.${anyLc?'':' No figures are flagged right now.'}</p>`;
 }
 
@@ -476,7 +477,7 @@ function renderCharts(){
   const rrow=(p,b)=>`<tr${b?' class="bench"':''}>
     <td><span class="rname">${b?'<i class="d"></i>':`<i style="background:${p.color}"></i>`}${p.name}</span></td>
     <td class="${b?'':rc(p.pr)}">${fmt(p.pr)}</td>
-    <td class="${b?'':rc(p.ex)}">${b?'—':pts(p.ex)}</td>
+    <td class="${b?'':rc(p.ex)}">${b?'—':fmt(p.ex)}</td>
     <td>${num(p.beta)}${b?'':lcBeta(p)}</td>
     <td class="${b?'':rc(p.sharpe)}">${num(p.sharpe)}${lcSharpe(p)}</td>
     <td class="vol">${fmt(p.vol).replace('+','')}</td></tr>`;
@@ -485,8 +486,8 @@ function renderCharts(){
       <div class="legrow" id="leg"></div>
       <div class="cbox" style="height:${phone?300:380}px;"><canvas id="lc"></canvas></div></div>
     <div class="csect"><div class="ctitle"><span>Risk &amp; return</span><span>${nDays} trading days</span></div>
-      <table class="rtbl"><thead><tr><th>Portfolio</th><th>Return</th><th>vs S&amp;P</th><th>Beta</th><th>Sharpe</th><th class="vol">Volatility</th></tr></thead>
-      <tbody>${bench?rrow(bench,true):''}${ranked.map(p=>rrow(p,false)).join('')}</tbody></table></div>
+      <div class="rscroll"><table class="rtbl"><thead><tr><th>Portfolio</th><th>Return</th><th>vs S&amp;P</th><th>Beta</th><th>Sharpe</th><th class="vol">Volatility</th></tr></thead>
+      <tbody>${bench?rrow(bench,true):''}${ranked.map(p=>rrow(p,false)).join('')}</tbody></table></div></div>
     <div class="cgrid">
       <div class="csect"><div class="ctitle">Portfolio return to date</div><div class="cbox" style="height:${bars.length*40+30}px;"><canvas id="bc"></canvas></div></div>
       <div class="csect"><div class="ctitle">Individual ETF returns</div><div class="cbox" style="height:${tickers.length*24+30}px;"><canvas id="ec"></canvas></div></div>
@@ -516,7 +517,7 @@ function renderCharts(){
               y:{ticks:{color:'#e8ead6',font:{size:11},autoSkip:false},grid:{display:false}}}}});
   const sgn=x=>(x>=0?'+':'')+x.toFixed(2)+'%';
   charts.bar=hbar('bc',bars.map(p=>phone&&p.b?'S&P 500':p.name),bars.map(p=>+(p.pr*100).toFixed(2)),bars.map(p=>p.b?BENCH.color:p.pr>=0?'#7ecb8f':'#e07b6a'),
-    c=>{const p=bars[c.dataIndex];return ' '+sgn(c.raw)+(p.b||!bench?'':` (${pts(p.ex)} vs S&P)`);},!!bench);
+    c=>{const p=bars[c.dataIndex];return ' '+sgn(c.raw)+(p.b||!bench?'':` (${fmt(p.ex)} vs S&P)`);},!!bench);
   charts.etf=hbar('ec',tickers.map(e=>e.t),tickers.map(e=>+(rets[e.t]*100).toFixed(2)),tickers.map(e=>e.owner.color),
     c=>{const e=tickers[c.dataIndex];return ` ${sgn(c.raw)} · ${usd(prices[e.t])} · ${e.owner===benchOwner?'S&P 500 benchmark':`${e.owner.name} (${(e.w*100).toFixed(0)}%)`}`;},!!bench);
 }
