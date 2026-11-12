@@ -1,6 +1,6 @@
 // Cloudflare Worker (free tier): returns the same JSON shape as data.json, computed live from Yahoo.
 const START = 1767744000; // 2026-01-07 00:00 UTC
-const TICKERS = ["IEF","GLD","DBMF","SMH","DRIV","AGG","VTEB","SHLD","NLR","AIQ","XBI","XAR","ARGT","ARKK","BETE","TQQQ"];
+const TICKERS = ["IEF","GLD","DBMF","SMH","DRIV","AGG","VTEB","SHLD","NLR","AIQ","XBI","XAR","ARGT","ARKK","BETE","TQQQ","VOO"]; // VOO = S&P 500 benchmark
 const CORS = {"Access-Control-Allow-Origin":"*","Content-Type":"application/json"};
 
 async function one(t) {
@@ -17,7 +17,7 @@ async function one(t) {
     const p = adj[i] ?? cls[i];
     if (p != null) map[new Date(ts*1000).toISOString().slice(0,10)] = p;
   });
-  return map;
+  return { map, price: res.meta?.regularMarketPrice ?? null };
 }
 
 export default {
@@ -27,7 +27,9 @@ export default {
     const hit = await cache.match(key);
     if (hit) return hit;
     try {
-      const maps = await Promise.all(TICKERS.map(one));
+      const got = await Promise.all(TICKERS.map(one));
+      const maps = got.map(g => g.map), prices = {};
+      TICKERS.forEach((t, k) => { if (got[k].price != null) prices[t] = Math.round(got[k].price * 100) / 100; });
       const dates = [...new Set(maps.flatMap(m => Object.keys(m)))].sort();
       const series = {};
       TICKERS.forEach((t, k) => {
@@ -39,7 +41,7 @@ export default {
           return Math.round((last/base - 1)*1e6)/1e6;
         });
       });
-      const resp = new Response(JSON.stringify({ updated: new Date().toISOString(), start: "2026-01-07", dates, series }),
+      const resp = new Response(JSON.stringify({ updated: new Date().toISOString(), start: "2026-01-07", dates, series, prices }),
         { headers: { ...CORS, "Cache-Control": "public, max-age=60" } });
       ctx.waitUntil(cache.put(key, resp.clone()));
       return resp;

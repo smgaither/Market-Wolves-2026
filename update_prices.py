@@ -3,7 +3,7 @@ import json, datetime as dt, sys
 import yfinance as yf
 
 START = "2026-01-07"
-TICKERS = ["IEF","GLD","DBMF","SMH","DRIV","AGG","VTEB","SHLD","NLR","AIQ","XBI","XAR","ARGT","ARKK","BETE","TQQQ"]
+TICKERS = ["IEF","GLD","DBMF","SMH","DRIV","AGG","VTEB","SHLD","NLR","AIQ","XBI","XAR","ARGT","ARKK","BETE","TQQQ","VOO"]  # VOO = S&P 500 benchmark
 
 # auto_adjust=True -> Close is adjusted for splits AND dividends (total return)
 df = yf.download(TICKERS, start=START, auto_adjust=True, progress=False, group_by="column")["Close"]
@@ -12,7 +12,7 @@ if df.empty:
     sys.exit("No data returned")
 
 out = {"updated": dt.datetime.utcnow().isoformat(timespec="seconds") + "Z",
-       "start": START, "dates": [d.strftime("%Y-%m-%d") for d in df.index], "series": {}}
+       "start": START, "dates": [d.strftime("%Y-%m-%d") for d in df.index], "series": {}, "prices": {}}
 missing = []
 for t in TICKERS:
     s = df[t].ffill()
@@ -20,6 +20,8 @@ for t in TICKERS:
     if first is None:
         missing.append(t); continue
     base = float(s.loc[first])
+    # Latest adjusted close = actual latest price (adjustments only rescale older prices)
+    out["prices"][t] = round(float(s.dropna().iloc[-1]), 2)
     out["series"][t] = [None if s.isna().iloc[i] else round(float(s.iloc[i]) / base - 1, 6) for i in range(len(s))]
 if missing:
     sys.exit(f"Missing tickers: {missing}")
